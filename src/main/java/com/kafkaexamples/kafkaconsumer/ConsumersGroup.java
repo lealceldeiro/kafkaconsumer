@@ -157,7 +157,17 @@ public final class ConsumersGroup<K, V> {
     }
 
     private static <K, V> void registerShutDownHook(Consumer<K, V> newConsumer) {
-        Runtime.getRuntime().addShutdownHook(new Thread(newConsumer::wakeup));
+        Thread mainThread = Thread.currentThread();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            log.info("Waking up consumer...");
+            newConsumer.wakeup();
+
+            try {
+                mainThread.join();
+            } catch (InterruptedException e) {
+                log.severe("Error while waiting for thread termination");
+            }
+        }));
     }
 
     public void shutdownAll() {
